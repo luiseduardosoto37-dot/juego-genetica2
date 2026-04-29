@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ADN Survival – Factores Genéticos</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --neon-cyan: #00f5ff;
+    --neon-pink: #ff006e;
+    --neon-green: #39ff14;
+    --neon-yellow: #ffe600;
+    --dark: #030a14;
+    --dark2: #060f1e;
+    --card: rgba(0,245,255,0.05);
+  }
+
+  body {
+    background: var(--dark);
+    font-family: 'Exo 2', sans-serif;
+    color: #fff;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---- SCREENS ---- */
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    text-align: center;
+    transition: opacity .4s;
+  }
+  .screen.hidden { opacity: 0; pointer-events: none; }
+
+  /* ---- START SCREEN ---- */
+  #startScreen {
+    background: radial-gradient(ellipse at 50% 30%, #001a2e 0%, var(--dark) 70%);
+  }
+  #startScreen h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.6rem, 5vw, 3rem);
+    font-weight: 900;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 20px var(--neon-cyan), 0 0 60px rgba(0,245,255,0.3);
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+  #startScreen .subtitle {
+    font-size: clamp(0.75rem, 2.5vw, 1rem);
+    color: rgba(0,245,255,0.6);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 30px;
+  }
+  .dna-icon {
+    font-size: clamp(3rem, 8vw, 5rem);
+    margin-bottom: 20px;
+    animation: spin 4s linear infinite;
+    display: inline-block;
+  }
+  @keyframes spin { from{transform:rotateY(0)} to{transform:rotateY(360deg)} }
+
+  .info-box {
+    background: rgba(0,245,255,0.06);
+    border: 1px solid rgba(0,245,255,0.2);
+    border-radius: 12px;
+    padding: 16px 24px;
+    max-width: 480px;
+    margin-bottom: 28px;
+    font-size: clamp(0.75rem, 2vw, 0.9rem);
+    line-height: 1.7;
+    color: rgba(255,255,255,0.8);
+  }
+  .info-box strong { color: var(--neon-cyan); }
+
+  .btn-start {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+    font-weight: 700;
+    color: var(--dark);
+    background: var(--neon-cyan);
+    border: none;
+    border-radius: 50px;
+    padding: 14px 40px;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    box-shadow: 0 0 20px var(--neon-cyan), 0 0 40px rgba(0,245,255,0.3);
+    transition: transform .15s, box-shadow .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-start:active { transform: scale(0.95); }
+  .btn-start:hover { box-shadow: 0 0 30px var(--neon-cyan), 0 0 60px rgba(0,245,255,0.5); }
+
+  /* ---- GAME SCREEN ---- */
+  #gameScreen {
+    background: var(--dark);
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: 0;
+  }
+
+  #hud {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    background: rgba(0,0,0,0.6);
+    border-bottom: 1px solid rgba(0,245,255,0.15);
+    flex-shrink: 0;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .hud-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .hud-label {
+    font-size: 0.55rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+  }
+  .hud-val {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(0.8rem, 2.5vw, 1rem);
+    font-weight: 700;
+  }
+  .hud-val.cyan { color: var(--neon-cyan); text-shadow: 0 0 8px var(--neon-cyan); }
+  .hud-val.pink { color: var(--neon-pink); text-shadow: 0 0 8px var(--neon-pink); }
+  .hud-val.green { color: var(--neon-green); text-shadow: 0 0 8px var(--neon-green); }
+  .hud-val.yellow { color: var(--neon-yellow); text-shadow: 0 0 8px var(--neon-yellow); }
+
+  #healthBar {
+    width: 100px;
+    height: 8px;
+    background: rgba(255,0,110,0.2);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid rgba(255,0,110,0.3);
+  }
+  #healthFill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--neon-pink), #ff4da6);
+    border-radius: 4px;
+    transition: width .2s;
+    box-shadow: 0 0 6px var(--neon-pink);
+  }
+
+  canvas {
+    display: block;
+    flex: 1;
+    width: 100%;
+    max-height: calc(100vh - 90px);
+    touch-action: none;
+  }
+
+  #mobileControls {
+    display: none;
+    width: 100%;
+    padding: 8px 16px;
+    background: rgba(0,0,0,0.7);
+    border-top: 1px solid rgba(0,245,255,0.1);
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  @media (pointer: coarse) {
+    #mobileControls { display: flex; }
+  }
+
+  .d-pad {
+    display: grid;
+    grid-template-columns: repeat(3, 44px);
+    grid-template-rows: repeat(3, 44px);
+    gap: 4px;
+  }
+  .d-btn {
+    background: rgba(0,245,255,0.1);
+    border: 1px solid rgba(0,245,255,0.3);
+    border-radius: 8px;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--neon-cyan);
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: background .1s;
+  }
+  .d-btn:active { background: rgba(0,245,255,0.3); }
+  .d-btn.empty { background: transparent; border-color: transparent; pointer-events: none; }
+
+  .action-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+  }
+  .a-btn {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    border: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform .1s;
+  }
+  .a-btn:active { transform: scale(0.88); }
+  #btnBoost {
+    background: radial-gradient(circle, var(--neon-green) 0%, #1a8a00 100%);
+    box-shadow: 0 0 12px var(--neon-green);
+    font-weight: bold; font-family: 'Orbitron', monospace; font-size: 0.6rem; color: #000;
+  }
+  #btnShield {
+    background: radial-gradient(circle, var(--neon-yellow) 0%, #8a7000 100%);
+    box-shadow: 0 0 12px var(--neon-yellow);
+    font-weight: bold; font-family: 'Orbitron', monospace; font-size: 0.55rem; color: #000;
+  }
+
+  .ability-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.5);
+    text-align: center;
+  }
+
+  /* ---- POPUP MSG ---- */
+  #popup {
+    position: fixed;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.85);
+    border: 1px solid var(--neon-cyan);
+    border-radius: 10px;
+    padding: 8px 20px;
+    font-size: 0.8rem;
+    color: var(--neon-cyan);
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity .3s;
+    white-space: nowrap;
+    max-width: 90vw;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+  #popup.show { opacity: 1; }
+
+  /* ---- GAME OVER / WIN ---- */
+  #endScreen {
+    background: radial-gradient(ellipse at 50% 40%, #1a0010 0%, var(--dark) 70%);
+  }
+  #endScreen h2 {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.4rem, 5vw, 2.5rem);
+    margin-bottom: 10px;
+  }
+  #endScreen .end-score {
+    font-size: clamp(1rem, 3vw, 1.4rem);
+    margin-bottom: 6px;
+    color: rgba(255,255,255,0.8);
+  }
+  #endScreen .end-fact {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 14px 20px;
+    font-size: clamp(0.7rem, 2vw, 0.85rem);
+    max-width: 480px;
+    margin: 16px 0 24px;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.75);
+  }
+  #endScreen .end-fact em { color: var(--neon-cyan); font-style: normal; }
+</style>
+</head>
+<body>
+
+<!-- ===== START SCREEN ===== -->
+<div id="startScreen" class="screen">
+  <div class="dna-icon">🧬</div>
+  <h1>ADN SURVIVAL</h1>
+  <div class="subtitle">Factores Genéticos · 6A · CECyTES Sonora</div>
+  <div class="info-box">
+    <strong>¿Cómo jugar?</strong><br>
+    Eres una <strong>célula</strong> que debe sobrevivir en el torrente genético.<br>
+    • Esquiva las <strong>mutaciones dañinas</strong> 🔴 (virus, toxinas)<br>
+    • Recoge <strong>genes dominantes</strong> 🟢 para ganar puntos<br>
+    • Usa <strong>Boost</strong> para acelerar y <strong>Escudo</strong> para protegerte<br>
+    • ¡Cuida tu <strong>ADN / Salud</strong>! Si llega a 0, la especie se extingue.
+  </div>
+  <button class="btn-start" id="btnStart">▶ INICIAR JUEGO</button>
+</div>
+
+<!-- ===== GAME SCREEN ===== -->
+<div id="gameScreen" class="screen hidden">
+  <div id="hud">
+    <div class="hud-item">
+      <span class="hud-label">Puntuación</span>
+      <span class="hud-val cyan" id="scoreVal">0</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">ADN / Salud</span>
+      <div id="healthBar"><div id="healthFill" style="width:100%"></div></div>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">Generación</span>
+      <span class="hud-val yellow" id="genVal">1</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">Genes</span>
+      <span class="hud-val green" id="genesVal">0</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">Escudo</span>
+      <span class="hud-val pink" id="shieldVal">3</span>
+    </div>
+  </div>
+  <canvas id="gameCanvas"></canvas>
+  <div id="mobileControls">
+    <div class="d-pad">
+      <div class="d-btn empty"></div>
+      <div class="d-btn" id="dUp">▲</div>
+      <div class="d-btn empty"></div>
+      <div class="d-btn" id="dLeft">◀</div>
+      <div class="d-btn empty"></div>
+      <div class="d-btn" id="dRight">▶</div>
+      <div class="d-btn empty"></div>
+      <div class="d-btn" id="dDown">▼</div>
+      <div class="d-btn empty"></div>
+    </div>
+    <div class="ability-info">
+      <span>🎮 Controles</span>
+      <span>Mueve la célula</span>
+    </div>
+    <div class="action-btns">
+      <button class="a-btn" id="btnBoost">BOOST<br>⚡</button>
+      <button class="a-btn" id="btnShield">ESCUDO<br>🛡️</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== END SCREEN ===== -->
+<div id="endScreen" class="screen hidden">
+  <div class="dna-icon" id="endIcon">💀</div>
+  <h2 id="endTitle" style="color:#ff006e;">EXTINCIÓN GENÉTICA</h2>
+  <div class="end-score" id="endScore">Puntuación: 0</div>
+  <div class="end-score" id="endGenes">Genes recogidos: 0</div>
+  <div class="end-score" id="endGen">Generación alcanzada: 1</div>
+  <div class="end-fact" id="endFact"></div>
+  <button class="btn-start" id="btnRestart">↻ JUGAR DE NUEVO</button>
+</div>
+
+<!-- POPUP -->
+<div id="popup"></div>
+
+<script>
+// ============================================================
+// GAME ENGINE
+// ============================================================
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let W, H;
+function resize() {
+  const rect = document.getElementById('gameScreen').getBoundingClientRect();
+  W = canvas.width = rect.width;
+  const hudH = document.getElementById('hud').offsetHeight;
+  const ctrlH = window.matchMedia('(pointer:coarse)').matches
+    ? document.getElementById('mobileControls').offsetHeight : 0;
+  H = canvas.height = rect.height - hudH - ctrlH;
+}
+
+// --- STATE ---
+let score, health, maxHealth, generation, genesCollected, shieldCount;
+let player, particles, orbs, threats, stars;
+let keys = {};
+let gameRunning = false;
+let animId;
+let boostActive = false, boostTimer = 0;
+let shieldActive = false, shieldTimer = 0;
+let lastOrbSpawn, lastThreatSpawn, lastGenUp;
+let diffMult;
+let combo = 0, comboTimer = 0;
+
+const FACTS = [
+  { trigger: 5,  text: '🧬 <em>Gen dominante:</em> Un solo alelo dominante es suficiente para expresar un rasgo. ¡Recolectaste 5 genes!' },
+  { trigger: 15, text: '🔬 <em>Mutación:</em> Es un cambio en la secuencia del ADN que puede crear nuevas variantes genéticas en la población.' },
+  { trigger: 30, text: '🌀 <em>Recombinación genética:</em> Durante la meiosis los cromosomas intercambian fragmentos, generando diversidad.' },
+  { trigger: 50, text: '🌍 <em>Flujo génico:</em> Cuando poblaciones migran, introducen nuevas variantes genéticas en otras poblaciones.' },
+  { trigger: 75, text: '⚡ <em>Selección natural:</em> Los individuos mejor adaptados sobreviven y transmiten sus genes a la siguiente generación.' },
+];
+let factShown = new Set();
+
+const GEN_THRESHOLDS = [0, 300, 700, 1300, 2200, 3500];
+
+const END_FACTS = [
+  '🧬 <em>Dato:</em> Tenemos ~20,000 genes que controlan cómo nos desarrollamos, funcionamos y crecemos.',
+  '🔬 <em>Dato:</em> La fibrosis quística es causada por una mutación en el gen CFTR, afectando pulmones y sistema digestivo.',
+  '🌀 <em>Dato:</em> La variabilidad genética es fundamental para la evolución: permite que las poblaciones sobrevivan cambios ambientales.',
+  '⚡ <em>Dato:</em> El Síndrome de Down es causado por una copia extra del cromosoma 21 (trisomía 21).',
+  '🌍 <em>Dato:</em> Los antecedentes familiares son uno de los factores de riesgo más importantes para enfermedades como el cáncer o la diabetes.',
+];
+
+// --- PLAYER ---
+const PLAYER_R = 18;
+const SPEED_BASE = 3.2;
+const SPEED_BOOST = 6.5;
+
+function initGame() {
+  resize();
+  score = 0; health = 100; maxHealth = 100;
+  generation = 1; genesCollected = 0; shieldCount = 3;
+  boostActive = false; boostTimer = 0;
+  shieldActive = false; shieldTimer = 0;
+  diffMult = 1; combo = 0; comboTimer = 0;
+  lastOrbSpawn = 0; lastThreatSpawn = 0; lastGenUp = 0;
+  factShown.clear();
+
+  player = { x: W / 2, y: H / 2, vx: 0, vy: 0 };
+  orbs = []; threats = []; particles = [];
+
+  stars = Array.from({ length: 60 }, () => ({
+    x: Math.random() * W,
+    y: Math.random() * H,
+    r: Math.random() * 1.5 + 0.3,
+    a: Math.random()
+  }));
+
+  updateHUD();
+  gameRunning = true;
+  if (animId) cancelAnimationFrame(animId);
+  loop();
+}
+
+function updateHUD() {
+  document.getElementById('scoreVal').textContent = score;
+  document.getElementById('genVal').textContent = generation;
+  document.getElementById('genesVal').textContent = genesCollected;
+  document.getElementById('shieldVal').textContent = shieldCount;
+  const pct = Math.max(0, (health / maxHealth) * 100);
+  document.getElementById('healthFill').style.width = pct + '%';
+}
+
+// --- LOOP ---
+let last = 0;
+function loop(ts = 0) {
+  const dt = Math.min((ts - last) / 16.67, 3);
+  last = ts;
+  update(dt);
+  draw();
+  if (gameRunning) animId = requestAnimationFrame(loop);
+}
+
+function update(dt) {
+  // Input
+  let dx = 0, dy = 0;
+  if (keys['ArrowLeft']  || keys['a'] || keys['dLeft'])  dx -= 1;
+  if (keys['ArrowRight'] || keys['d'] || keys['dRight']) dx += 1;
+  if (keys['ArrowUp']    || keys['w'] || keys['dUp'])    dy -= 1;
+  if (keys['ArrowDown']  || keys['s'] || keys['dDown'])  dy += 1;
+
+  // Joystick touch drag
+  if (touchDelta.x !== 0 || touchDelta.y !== 0) {
+    dx = touchDelta.x; dy = touchDelta.y;
+  }
+
+  // Normalize diagonal
+  const len = Math.hypot(dx, dy);
+  if (len > 0) { dx /= len; dy /= len; }
+
+  // Boost
+  if (boostActive) {
+    boostTimer -= dt;
+    if (boostTimer <= 0) boostActive = false;
+  }
+  const spd = (boostActive ? SPEED_BOOST : SPEED_BASE) * diffMult * 0.85;
+
+  player.vx = dx * spd;
+  player.vy = dy * spd;
+  player.x = Math.max(PLAYER_R, Math.min(W - PLAYER_R, player.x + player.vx * dt));
+  player.y = Math.max(PLAYER_R, Math.min(H - PLAYER_R, player.y + player.vy * dt));
+
+  // Shield timer
+  if (shieldActive) {
+    shieldTimer -= dt;
+    if (shieldTimer <= 0) shieldActive = false;
+  }
+
+  // Combo timer
+  if (comboTimer > 0) { comboTimer -= dt; if (comboTimer <= 0) combo = 0; }
+
+  // Spawn orbs (genes)
+  lastOrbSpawn += dt;
+  const orbInterval = Math.max(40, 90 - generation * 8);
+  if (lastOrbSpawn > orbInterval) {
+    lastOrbSpawn = 0;
+    spawnOrb();
+  }
+
+  // Spawn threats
+  lastThreatSpawn += dt;
+  const threatInterval = Math.max(25, 70 - generation * 6);
+  if (lastThreatSpawn > threatInterval) {
+    lastThreatSpawn = 0;
+    spawnThreat();
+  }
+
+  // Generation up
+  for (let i = 0; i < GEN_THRESHOLDS.length; i++) {
+    if (score >= GEN_THRESHOLDS[i] && generation <= i) {
+      generation = i + 1;
+      diffMult = 1 + generation * 0.18;
+      showPopup(`🧬 ¡Generación ${generation}! La especie evoluciona...`);
+      spawnBurst(player.x, player.y, '#00f5ff', 12);
+    }
+  }
+
+  // Update orbs — chase player gently
+  orbs.forEach(o => {
+    o.angle += 0.04 * dt;
+    o.pulse += 0.08 * dt;
+    const dx2 = player.x - o.x;
+    const dy2 = player.y - o.y;
+    const d = Math.hypot(dx2, dy2) || 1;
+    o.vx += (dx2 / d) * o.chaseSpeed * 0.08 * dt;
+    o.vy += (dy2 / d) * o.chaseSpeed * 0.08 * dt;
+    const spd2 = Math.hypot(o.vx, o.vy);
+    const maxSpd = o.chaseSpeed * 1.4;
+    if (spd2 > maxSpd) { o.vx = (o.vx / spd2) * maxSpd; o.vy = (o.vy / spd2) * maxSpd; }
+    o.x += o.vx * dt;
+    o.y += o.vy * dt;
+    if (o.x < o.r) { o.x = o.r; o.vx *= -0.5; }
+    if (o.x > W - o.r) { o.x = W - o.r; o.vx *= -0.5; }
+    if (o.y < o.r) { o.y = o.r; o.vy *= -0.5; }
+    if (o.y > H - o.r) { o.y = H - o.r; o.vy *= -0.5; }
+  });
+
+  // Update threats
+  threats.forEach(t => {
+    t.x += t.vx * dt;
+    t.y += t.vy * dt;
+    t.angle += t.spin * dt;
+    // Bounce off walls
+    if (t.x < t.r || t.x > W - t.r) t.vx *= -1;
+    if (t.y < t.r || t.y > H - t.r) t.vy *= -1;
+    t.x = Math.max(t.r, Math.min(W - t.r, t.x));
+    t.y = Math.max(t.r, Math.min(H - t.r, t.y));
+  });
+
+  // Update particles
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.life -= dt; p.vy += 0.05 * dt;
+    p.r = Math.max(0, p.r - 0.04 * dt);
+  });
+
+  // Collisions: player ↔ orbs
+  orbs = orbs.filter(o => {
+    const dist = Math.hypot(player.x - o.x, player.y - o.y);
+    if (dist < PLAYER_R + o.r) {
+      // Collected!
+      genesCollected++;
+      combo++;
+      comboTimer = 90;
+      const pts = o.type === 'dominant' ? 10 * Math.max(1, combo) : 5;
+      score += pts;
+      if (o.type === 'dominant') health = Math.min(maxHealth, health + 3);
+      spawnBurst(o.x, o.y, o.type === 'dominant' ? '#39ff14' : '#ffe600', 8);
+      if (combo >= 3) showPopup(`🔥 ¡Combo x${combo}! +${pts} pts`);
+      checkFacts();
+      updateHUD();
+      return false;
+    }
+    return true;
+  });
+
+  // Collisions: player ↔ threats
+  threats = threats.filter(t => {
+    const dist = Math.hypot(player.x - t.x, player.y - t.y);
+    if (dist < PLAYER_R + t.r - 4) {
+      if (shieldActive) {
+        spawnBurst(t.x, t.y, '#ffe600', 10);
+        showPopup('🛡️ ¡Escudo activado! Mutación bloqueada.');
+        return false;
+      }
+      health -= t.dmg;
+      combo = 0;
+      spawnBurst(t.x, t.y, '#ff006e', 10);
+      showPopup(t.label);
+      updateHUD();
+      if (health <= 0) { endGame(); return false; }
+      return false;
+    }
+    // Remove if out of bounds far
+    if (t.x < -60 || t.x > W + 60 || t.y < -60 || t.y > H + 60) return false;
+    return true;
+  });
+
+  // Win condition
+  if (generation >= 6 && score >= GEN_THRESHOLDS[5]) {
+    endGame(true);
+  }
+}
+
+function spawnOrb() {
+  // Spawn inside the canvas, away from player
+  let x, y, attempts = 0;
+  do {
+    x = 40 + Math.random() * (W - 80);
+    y = 40 + Math.random() * (H - 80);
+    attempts++;
+  } while (Math.hypot(x - player.x, y - player.y) < 100 && attempts < 20);
+
+  const isDom = Math.random() > 0.3;
+  orbs.push({
+    x, y, r: 20 + Math.random() * 8,   // bigger hit radius
+    type: isDom ? 'dominant' : 'recessive',
+    angle: 0, pulse: Math.random() * Math.PI * 2,
+    vx: 0, vy: 0,
+    chaseSpeed: 0.8 + Math.random() * 0.6, // actively drifts toward player
+    emoji: isDom ? '🧬' : '⚗️'
+  });
+}
+
+const THREAT_TYPES = [
+  { label: '⚠️ Mutación dañina: -15 ADN',  dmg: 15, r: 16, color: '#ff006e', shape: 'virus'  },
+  { label: '☠️ Toxina genética: -20 ADN',   dmg: 20, r: 14, color: '#ff4500', shape: 'spike'  },
+  { label: '🔴 Enfermedad recesiva: -10 ADN',dmg: 10, r: 12, color: '#cc0066', shape: 'circle' },
+  { label: '💀 Deriva génica: -12 ADN',      dmg: 12, r: 15, color: '#8b0000', shape: 'diamond'},
+];
+
+function spawnThreat() {
+  const edge = Math.floor(Math.random() * 4);
+  let x, y;
+  if (edge === 0) { x = Math.random() * W; y = -30; }
+  else if (edge === 1) { x = W + 30; y = Math.random() * H; }
+  else if (edge === 2) { x = Math.random() * W; y = H + 30; }
+  else { x = -30; y = Math.random() * H; }
+
+  const tt = THREAT_TYPES[Math.floor(Math.random() * THREAT_TYPES.length)];
+  const spd = (1.2 + Math.random() * 1.5) * diffMult;
+  const ang = Math.atan2(player.y - y, player.x - x) + (Math.random() - 0.5) * 0.8;
+  threats.push({
+    ...tt, x, y,
+    vx: Math.cos(ang) * spd,
+    vy: Math.sin(ang) * spd,
+    angle: 0, spin: (Math.random() - 0.5) * 0.12,
+  });
+}
+
+function spawnBurst(x, y, color, n) {
+  for (let i = 0; i < n; i++) {
+    const a = (Math.PI * 2 * i) / n + Math.random() * 0.5;
+    const spd = 1.5 + Math.random() * 3;
+    particles.push({ x, y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd - 1,
+      r: 3 + Math.random() * 3, life: 25 + Math.random() * 20, color });
+  }
+}
+
+// --- DRAW ---
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  ctx.fillStyle = '#030a14';
+  ctx.fillRect(0, 0, W, H);
+
+  // Stars
+  stars.forEach(s => {
+    s.a = (s.a + 0.005) % 1;
+    const alpha = 0.2 + 0.5 * Math.abs(Math.sin(s.a * Math.PI));
+    ctx.fillStyle = `rgba(0,245,255,${alpha * 0.6})`;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // DNA strand lines (decorative)
+  drawDNA();
+
+  // Particles
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life / 45;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+
+  // Orbs (genes)
+  orbs.forEach(o => {
+    const glow = Math.abs(Math.sin(o.pulse)) * 8 + 4;
+    const col = o.type === 'dominant' ? '#39ff14' : '#ffe600';
+    ctx.shadowBlur = glow * 2;
+    ctx.shadowColor = col;
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.arc(o.x, o.y, o.r + Math.sin(o.pulse) * 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // Label
+    ctx.font = `${o.r * 1.1}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(o.type === 'dominant' ? '🧬' : '⚗️', o.x, o.y);
+  });
+
+  // Threats
+  threats.forEach(t => {
+    ctx.save();
+    ctx.translate(t.x, t.y);
+    ctx.rotate(t.angle);
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = t.color;
+    if (t.shape === 'virus') drawVirus(t.r, t.color);
+    else if (t.shape === 'spike') drawSpike(t.r, t.color);
+    else if (t.shape === 'diamond') drawDiamond(t.r, t.color);
+    else {
+      ctx.fillStyle = t.color;
+      ctx.beginPath(); ctx.arc(0, 0, t.r, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  });
+
+  // Player cell
+  drawPlayer();
+
+  // Combo display
+  if (combo >= 3 && comboTimer > 0) {
+    ctx.font = `bold ${14 + combo}px 'Orbitron', monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffe600';
+    ctx.shadowBlur = 10; ctx.shadowColor = '#ffe600';
+    ctx.fillText(`×${combo} COMBO`, player.x, player.y - PLAYER_R - 20);
+    ctx.shadowBlur = 0;
+  }
+}
+
+function drawDNA() {
+  const t = performance.now() * 0.001;
+  ctx.globalAlpha = 0.06;
+  ctx.strokeStyle = '#00f5ff';
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < 3; i++) {
+    const xBase = (W * (i + 0.5)) / 3;
+    ctx.beginPath();
+    for (let y = 0; y < H; y += 4) {
+      const x = xBase + Math.sin(y * 0.04 + t + i) * 25;
+      if (y === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.beginPath();
+    for (let y = 0; y < H; y += 4) {
+      const x = xBase - Math.sin(y * 0.04 + t + i) * 25;
+      if (y === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawPlayer() {
+  const x = player.x, y = player.y;
+  // Outer glow
+  ctx.shadowBlur = 20;
+  ctx.shadowColor = boostActive ? '#39ff14' : '#00f5ff';
+
+  // Shield ring
+  if (shieldActive) {
+    ctx.strokeStyle = '#ffe600';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([8, 4]);
+    ctx.beginPath();
+    ctx.arc(x, y, PLAYER_R + 10, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Cell body
+  const grad = ctx.createRadialGradient(x - 5, y - 5, 2, x, y, PLAYER_R);
+  grad.addColorStop(0, boostActive ? '#aaffaa' : '#80f5ff');
+  grad.addColorStop(1, boostActive ? '#00aa00' : '#005599');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(x, y, PLAYER_R, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Nucleus
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.beginPath();
+  ctx.arc(x, y, PLAYER_R * 0.45, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Emoji
+  ctx.shadowBlur = 0;
+  ctx.font = `${PLAYER_R * 0.9}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('🔬', x, y);
+}
+
+function drawVirus(r, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(0, 0, r * 0.7, 0, Math.PI * 2); ctx.fill();
+  for (let i = 0; i < 8; i++) {
+    const a = (Math.PI * 2 * i) / 8;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(Math.cos(a) * r, Math.sin(a) * r, r * 0.25, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawSpike(r, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = (Math.PI * 2 * i) / 6 - Math.PI / 2;
+    const outer = r; const inner = r * 0.45;
+    ctx.lineTo(Math.cos(a) * outer, Math.sin(a) * outer);
+    ctx.lineTo(Math.cos(a + Math.PI / 6) * inner, Math.sin(a + Math.PI / 6) * inner);
+  }
+  ctx.closePath(); ctx.fill();
+}
+
+function drawDiamond(r, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(0, -r); ctx.lineTo(r * 0.7, 0);
+  ctx.lineTo(0, r); ctx.lineTo(-r * 0.7, 0);
+  ctx.closePath(); ctx.fill();
+}
+
+// --- FACTS / POPUP ---
+let popupTimer;
+function showPopup(msg) {
+  const el = document.getElementById('popup');
+  el.innerHTML = msg;
+  el.classList.add('show');
+  clearTimeout(popupTimer);
+  popupTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function checkFacts() {
+  FACTS.forEach(f => {
+    if (!factShown.has(f.trigger) && genesCollected >= f.trigger) {
+      factShown.add(f.trigger);
+      setTimeout(() => showPopup(`📚 ${f.text}`), 400);
+    }
+  });
+}
+
+// --- END GAME ---
+function endGame(win = false) {
+  gameRunning = false;
+  cancelAnimationFrame(animId);
+
+  const endIcon = document.getElementById('endIcon');
+  const endTitle = document.getElementById('endTitle');
+  const endFact = document.getElementById('endFact');
+
+  if (win) {
+    endIcon.textContent = '🏆';
+    endTitle.textContent = '¡SELECCIÓN NATURAL COMPLETADA!';
+    endTitle.style.color = '#39ff14';
+  } else {
+    endIcon.textContent = '💀';
+    endTitle.textContent = 'EXTINCIÓN GENÉTICA';
+    endTitle.style.color = '#ff006e';
+  }
+
+  document.getElementById('endScore').textContent = `Puntuación: ${score}`;
+  document.getElementById('endGenes').textContent = `Genes recogidos: ${genesCollected}`;
+  document.getElementById('endGen').textContent = `Generación alcanzada: ${generation}`;
+  endFact.innerHTML = END_FACTS[Math.floor(Math.random() * END_FACTS.length)];
+
+  showScreen('endScreen');
+}
+
+// --- SCREENS ---
+function showScreen(id) {
+  ['startScreen', 'gameScreen', 'endScreen'].forEach(s => {
+    document.getElementById(s).classList.toggle('hidden', s !== id);
+  });
+}
+
+// --- CONTROLS ---
+window.addEventListener('keydown', e => {
+  keys[e.key] = true;
+  if (e.key === ' ') activateBoost();
+  if (e.key === 'x' || e.key === 'X') activateShield();
+  e.preventDefault();
+});
+window.addEventListener('keyup', e => { keys[e.key] = false; });
+
+// D-pad buttons
+['dUp','dDown','dLeft','dRight'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('pointerdown', () => keys[id] = true);
+  el.addEventListener('pointerup', () => keys[id] = false);
+  el.addEventListener('pointerleave', () => keys[id] = false);
+});
+
+document.getElementById('btnBoost').addEventListener('pointerdown', activateBoost);
+document.getElementById('btnShield').addEventListener('pointerdown', activateShield);
+
+function activateBoost() {
+  boostActive = true;
+  boostTimer = 90;
+  showPopup('⚡ ¡Boost activado! Velocidad máxima');
+  spawnBurst(player.x, player.y, '#39ff14', 6);
+}
+function activateShield() {
+  if (shieldCount <= 0) { showPopup('❌ Sin escudos disponibles'); return; }
+  shieldActive = true;
+  shieldTimer = 120;
+  shieldCount--;
+  updateHUD();
+  showPopup('🛡️ ¡Escudo activado! ADN protegido por 2 seg');
+}
+
+// Touch drag (joystick)
+let touchDelta = { x: 0, y: 0 };
+let touchStart = null;
+canvas.addEventListener('touchstart', e => {
+  touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  e.preventDefault();
+}, { passive: false });
+canvas.addEventListener('touchmove', e => {
+  if (!touchStart) return;
+  const dx = e.touches[0].clientX - touchStart.x;
+  const dy = e.touches[0].clientY - touchStart.y;
+  const len = Math.hypot(dx, dy);
+  if (len > 8) {
+    touchDelta.x = dx / len;
+    touchDelta.y = dy / len;
+  }
+  e.preventDefault();
+}, { passive: false });
+canvas.addEventListener('touchend', () => {
+  touchDelta = { x: 0, y: 0 };
+  touchStart = null;
+});
+
+// Buttons
+document.getElementById('btnStart').addEventListener('click', () => {
+  showScreen('gameScreen');
+  setTimeout(() => { resize(); initGame(); }, 100);
+});
+document.getElementById('btnRestart').addEventListener('click', () => {
+  showScreen('gameScreen');
+  setTimeout(() => { resize(); initGame(); }, 100);
+});
+
+window.addEventListener('resize', () => {
+  resize();
+  if (stars) stars.forEach(s => { s.x = Math.random() * W; s.y = Math.random() * H; });
+});
+
+// Init
+showScreen('startScreen');
+</script>
+</body>
+</html>
